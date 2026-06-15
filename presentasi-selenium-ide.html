@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Selenium IDE untuk QA EUIS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #1C1A18;
+    --surface:   #252220;
+    --surface2:  #2E2B28;
+    --border:    #3A3530;
+    --coral:     #D4754E;
+    --coral-dim: #A8593B;
+    --amber:     #D4A46A;
+    --text:      #F0EDE8;
+    --text-muted:#9B9088;
+    --text-dim:  #6B6560;
+    --green:     #6B9E74;
+    --blue:      #7EB3C9;
+    --red:       #C06060;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* ── Progress bar ── */
+  #progress-bar-wrap {
+    width: 960px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+  #progress-bar-fill {
+    height: 100%;
+    background: var(--coral);
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* ── Section breadcrumb ── */
+  #breadcrumb {
+    width: 960px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+  }
+  .bc-item {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+  .bc-item.active { background: var(--coral); color: #fff; }
+  .bc-sep { color: var(--border); font-size: 11px; }
+
+  /* ── Slides ── */
+  .slide {
+    display: none;
+    width: 960px;
+    min-height: 510px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 44px 52px;
+    position: relative;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .slide.active { display: flex; }
+
+  /* ── Typography ── */
+  h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 44px;
+    color: var(--text);
+    line-height: 1.15;
+    margin-bottom: 14px;
+  }
+  h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 28px;
+    color: var(--text);
+    margin-bottom: 22px;
+    line-height: 1.2;
+  }
+  h3 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--coral);
+    margin-bottom: 10px;
+    margin-top: 18px;
+  }
+  h3:first-child { margin-top: 0; }
+
+  .section-tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--coral);
+    margin-bottom: 10px;
+  }
+  .subtitle { font-size: 17px; color: var(--text-muted); margin-bottom: 6px; }
+
+  p {
+    font-size: 15px;
+    line-height: 1.75;
+    color: #C8C4BE;
+    margin-bottom: 10px;
+  }
+
+  ul { list-style: none; padding: 0; }
+  ul li {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #C8C4BE;
+    padding: 3px 0 3px 20px;
+    position: relative;
+  }
+  ul li::before { content: "–"; position: absolute; left: 0; color: var(--coral); }
+  ul.check li::before  { content: "✓"; color: var(--green); }
+  ul.cross li::before  { content: "✗"; color: var(--red); }
+  ul.numbered { counter-reset: li; }
+  ul.numbered li { padding-left: 26px; }
+  ul.numbered li::before {
+    content: counter(li) ".";
+    counter-increment: li;
+    color: var(--amber);
+    font-weight: 700;
+  }
+
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--bg);
+    color: var(--amber);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+
+  pre {
+    background: var(--bg);
+    border-left: 3px solid var(--coral);
+    padding: 16px 20px;
+    border-radius: 4px;
+    margin: 14px 0;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #BDB8B0;
+    overflow-x: auto;
+  }
+  pre .kw  { color: var(--coral); }
+  pre .val { color: var(--amber); }
+  pre .cmt { color: var(--text-dim); }
+  pre .var { color: var(--blue); }
+
+  .block-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+  }
+  .pill-login  { background: #1E3248; color: var(--blue); }
+  .pill-act    { background: #1E3226; color: var(--green); }
+  .pill-assert { background: #3A2020; color: #E08080; }
+  .pill-tear   { background: #2A1E38; color: #B388CC; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    margin-top: 14px;
+  }
+  th {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    background: var(--surface2);
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    color: #C8C4BE;
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+  .badge-ok  { background: #1E3226; color: var(--green); }
+  .badge-err { background: #3A2020; color: var(--red); }
+
+  .two-col   { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 18px 20px;
+  }
+  .card h3 { margin-top: 0; }
+
+  .callout {
+    background: var(--surface2);
+    border-left: 3px solid var(--green);
+    padding: 12px 18px;
+    border-radius: 3px;
+    margin-top: 18px;
+  }
+  .callout p { margin: 0; font-size: 14px; color: var(--green); }
+  .callout.warn { border-left-color: var(--amber); }
+  .callout.warn p { color: var(--amber); }
+  .callout.danger { border-left-color: var(--red); }
+  .callout.danger p { color: #E08080; }
+
+  .hi  { color: var(--coral); font-weight: 600; }
+  .hi2 { color: var(--amber); font-weight: 600; }
+  .muted { color: var(--text-dim); font-size: 13px; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* ── Navigation ── */
+  #nav-row {
+    width: 960px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    flex-shrink: 0;
+  }
+  button {
+    background: var(--surface);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 7px 22px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  button:hover:not(:disabled) { background: var(--coral); border-color: var(--coral); color: #fff; }
+  button:disabled { opacity: 0.25; cursor: default; }
+  #counter { font-size: 12px; color: var(--text-dim); }
+
+  #section-dots { display: flex; gap: 6px; align-items: center; }
+  .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.2s;
+  }
+  .dot.active { background: var(--coral); }
+</style>
+</head>
+<body>
+
+<div id="progress-bar-wrap"><div id="progress-bar-fill"></div></div>
+
+<div id="breadcrumb">
+  <span class="bc-item" data-section="0">Intro</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-item" data-section="1">Mengapa</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-item" data-section="2">Demo</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-item" data-section="3">Anatomy</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-item" data-section="4">Patterns</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-item" data-section="5">Struktur</span>
+  <span class="bc-sep">›</span>
+  <span class="bc-item" data-section="6">Penutup</span>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 1 — TITLE
+══════════════════════════════════════════════ -->
+<div class="slide active" id="s1">
+  <div class="section-tag">EUIS Poltekkes · Tim QA · 2026</div>
+  <h1>Selenium IDE<br>untuk Pengujian UI</h1>
+  <p class="subtitle">Pengujian browser yang reproducible, terdokumentasi, dan dapat dijalankan siapapun — tanpa perlu coding.</p>
+  <hr>
+  <p class="muted">Pusilkom, Universitas Indonesia &nbsp;·&nbsp; Durasi sesi: 30–60 menit</p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 2 — AGENDA
+══════════════════════════════════════════════ -->
+<div class="slide" id="s2">
+  <div class="section-tag">Agenda</div>
+  <h2>Isi Sesi</h2>
+  <table>
+    <tr><th>#</th><th>Topik</th><th>Durasi</th></tr>
+    <tr><td>1</td><td>Mengapa Selenium IDE — masalah apa yang diselesaikan</td><td>5 menit</td></tr>
+    <tr><td>2</td><td><span class="hi">Demo langsung</span> — jalankan 9 test, lihat hasilnya dulu</td><td>5–10 menit</td></tr>
+    <tr><td>3</td><td>Anatomy satu test — blok LOGIN, ACT, ASSERT, TEARDOWN</td><td>15 menit</td></tr>
+    <tr><td>4</td><td>Tiga pola lanjutan — dynamic ID, conditional teardown, error guard</td><td>15 menit</td></tr>
+    <tr><td>5</td><td>Struktur direktori dan cara menulis test baru</td><td>10 menit</td></tr>
+  </table>
+  <div class="callout">
+    <p>Demo diletakkan di awal agar seluruh penjelasan berikutnya punya konteks yang jelas.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 3 — MENGAPA SELENIUM IDE
+══════════════════════════════════════════════ -->
+<div class="slide" id="s3">
+  <div class="section-tag">Bagian 1 · 5 menit</div>
+  <h2>Mengapa Selenium IDE?</h2>
+  <div class="two-col">
+    <div>
+      <h3>Masalah pengujian manual</h3>
+      <ul>
+        <li>Tidak reproducible — dua orang menguji fitur yang sama bisa dapat hasil berbeda</li>
+        <li>Setiap rilis harus mengulang seluruh skenario dari nol</li>
+        <li>Tidak ada bukti tertulis bahwa fitur sudah diuji</li>
+        <li>Bug regresi baru terdeteksi setelah user komplain</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Selenium IDE menjawab</h3>
+      <ul class="check">
+        <li>Tidak perlu coding — gunakan antarmuka record/edit/replay</li>
+        <li>File <code>.side</code> berformat JSON, disimpan di git bersama kode</li>
+        <li>Siapapun dapat menjalankan test yang sama, kapanpun</li>
+        <li>Jika ada regresi, test langsung merah tanpa perlu cek manual</li>
+      </ul>
+    </div>
+  </div>
+  <h3 style="margin-top:22px;">Posisi dalam workflow EUIS</h3>
+  <p>Dev selesai mengerjakan fitur di branch → QA memuat file <code>.side</code> di Selenium IDE → menjalankan suite → jika ada test yang merah, buat screenshot → laporkan ke issue GitLab.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 4 — DEMO LIVE
+══════════════════════════════════════════════ -->
+<div class="slide" id="s4">
+  <div class="section-tag">Bagian 2 · 5–10 menit</div>
+  <h2>Demo Langsung</h2>
+  <div class="two-col">
+    <div>
+      <h3>Langkah persiapan</h3>
+      <ul class="numbered">
+        <li>Buka <span class="hi">Chrome</span> — Selenium IDE hanya berjalan normal di Chrome (lihat slide berikutnya)</li>
+        <li>Buka Selenium IDE (ekstensi browser)</li>
+        <li>Muat file: <code>jenis-matakuliah-crud-demo.side</code></li>
+        <li>Server target: <code>10.119.107.223:18181</code></li>
+        <li>Pilih suite <span class="hi2">jenis-matakuliah-crud</span></li>
+        <li>Klik <strong>Run All Tests</strong></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Yang diamati bersama</h3>
+      <ul>
+        <li>Panel kiri: daftar test dalam suite</li>
+        <li>Panel tengah: daftar command per test</li>
+        <li>Panel bawah (Log): eksekusi real-time</li>
+        <li>Semua hijau = tidak ada regresi pada fitur ini</li>
+        <li>Ada merah = ada yang perlu ditindaklanjuti</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout">
+    <p>Demo dulu — baru dijelaskan. Peserta melihat hasil akhir sebelum memahami cara kerjanya.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 5 — KOMPATIBILITAS BROWSER
+══════════════════════════════════════════════ -->
+<div class="slide" id="s5">
+  <div class="section-tag">Bagian 2 · Catatan teknis</div>
+  <h2>Kompatibilitas Browser</h2>
+  <table>
+    <tr><th>Browser</th><th>Status</th><th>Keterangan</th></tr>
+    <tr>
+      <td>Chrome</td>
+      <td><span class="badge badge-ok">Berjalan normal</span></td>
+      <td>Semua command termasuk <code>type</code> berjalan tanpa masalah</td>
+    </tr>
+    <tr>
+      <td>Firefox</td>
+      <td><span class="badge badge-err">Rusak</span></td>
+      <td>Error <code>initKeyEvent is not a function</code> — API ini dihapus sejak Firefox 58 (November 2017). Selenium IDE bergantung pada API ini untuk command <code>type</code></td>
+    </tr>
+  </table>
+  <div class="callout danger" style="margin-top: 20px;">
+    <p>Untuk demo hari ini dan semua sesi QA: gunakan Chrome. Jangan gunakan Firefox.</p>
+  </div>
+  <h3 style="margin-top: 22px;">Jika Firefox tidak dapat dihindari</h3>
+  <p>Ganti command <code>type</code> dengan <code>executeScript</code> yang men-set nilai field secara langsung via JavaScript:</p>
+  <pre><span class="kw">executeScript</span>
+  target: <span class="val">document.getElementById('loginform-username').value = 'hening'</span>
+  value:  <span class="cmt">(kosongkan)</span></pre>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 6 — DAFTAR 9 TEST
+══════════════════════════════════════════════ -->
+<div class="slide" id="s6">
+  <div class="section-tag">Bagian 2 · Detail suite</div>
+  <h2>9 Test dalam Suite Ini</h2>
+  <table>
+    <tr><th>#</th><th>Nama Test</th><th>Yang diverifikasi</th></tr>
+    <tr><td>1</td><td>testCleanup</td><td>Menghapus data sisa dari run sebelumnya agar suite dapat dijalankan ulang dengan bersih</td></tr>
+    <tr><td>2</td><td>testListLoads</td><td>Halaman daftar terbuka tanpa error 500, grid data tampil</td></tr>
+    <tr><td>3</td><td>testCreateValidation</td><td>Form yang dikirim kosong ditolak dan pesan error inline tampil</td></tr>
+    <tr><td>4</td><td>testCreateHappyPath</td><td>Data berhasil disimpan, halaman kembali ke daftar, flash sukses tampil</td></tr>
+    <tr><td>5</td><td>testViewLoads</td><td>Halaman detail terbuka tanpa error 500, tombol Edit tersedia</td></tr>
+    <tr><td>6</td><td>testUpdateValidation</td><td>Form update yang dikirim kosong ditolak dan pesan error inline tampil</td></tr>
+    <tr><td>7</td><td>testUpdateHappyPath</td><td>Perubahan berhasil disimpan, halaman kembali ke daftar, flash sukses tampil</td></tr>
+    <tr><td>8</td><td>testDeleteModal</td><td>Modal konfirmasi muncul; tombol Batal tidak menghapus data</td></tr>
+    <tr><td>9</td><td>testDeleteHappyPath</td><td>Data terhapus, record tidak lagi muncul di daftar, flash sukses tampil</td></tr>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 7 — ANATOMY OVERVIEW
+══════════════════════════════════════════════ -->
+<div class="slide" id="s7">
+  <div class="section-tag">Bagian 3 · 15 menit</div>
+  <h2>Anatomy Satu Test</h2>
+  <p>Fokus: <code>testCreateHappyPath</code>. Dipilih karena mencakup seluruh empat blok sekaligus.</p>
+  <div style="display:flex; gap:10px; margin: 18px 0; flex-wrap:wrap; align-items:center;">
+    <span class="block-pill pill-login">[1] LOGIN</span>
+    <span style="color:var(--border);">→</span>
+    <span class="block-pill pill-act">[2] ACT</span>
+    <span style="color:var(--border);">→</span>
+    <span class="block-pill pill-assert">[3] ASSERT</span>
+    <span style="color:var(--border);">→</span>
+    <span class="block-pill pill-tear">[4] TEARDOWN</span>
+  </div>
+  <div class="two-col">
+    <div class="card">
+      <h3>LOGIN</h3>
+      <p>Logout → simpan kredensial ke variabel → login → pilih role. Setiap test berdiri sendiri — tidak bergantung state test lain.</p>
+    </div>
+    <div class="card">
+      <h3>ACT</h3>
+      <p>Navigasi via menu sidebar → buka form → isi data → submit. Menguji alur navigasi sekaligus fungsi form.</p>
+    </div>
+  </div>
+  <div class="two-col" style="margin-top:12px;">
+    <div class="card">
+      <h3>ASSERT</h3>
+      <p>Periksa tidak ada heading error. Periksa flash sukses tampil. Dua cek ini wajib ada di setiap test.</p>
+    </div>
+    <div class="card">
+      <h3>TEARDOWN</h3>
+      <p>Hapus data test setelah selesai. Bersifat kondisional — aman dijalankan ulang meskipun test gagal di tengah.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 8 — LOGIN BLOCK
+══════════════════════════════════════════════ -->
+<div class="slide" id="s8">
+  <div class="section-tag">Anatomy · Blok LOGIN</div>
+  <h2>Blok [1] LOGIN</h2>
+  <div class="two-col">
+    <div>
+      <pre><span class="kw">open</span>     /site/logout
+<span class="kw">store</span>    <span class="val">hening</span>  → <span class="var">username</span>
+<span class="kw">store</span>    <span class="val">*****</span>   → <span class="var">password</span>   <span class="cmt"># akun test QA</span>
+<span class="kw">open</span>     /site/login
+<span class="kw">type</span>     id=loginform-username  <span class="var">${username}</span>
+<span class="kw">type</span>     id=loginform-password  <span class="var">${password}</span>
+<span class="kw">click</span>    id=btn-site-login
+<span class="kw">waitFor</span>  id=select-site-role
+<span class="kw">select</span>   id=select-site-role    <span class="val">value=1#1</span>
+<span class="kw">click</span>    id=btn-site-role
+<span class="kw">waitFor</span>  css=.navbar</pre>
+    </div>
+    <div>
+      <h3>Alasan desain ini</h3>
+      <ul>
+        <li>Logout di awal memastikan test tidak mewarisi sesi dari test sebelumnya</li>
+        <li>Kredensial disimpan ke variabel — jika akun test diganti, cukup ubah satu baris</li>
+        <li>Format role <code>value=1#1</code> berarti <em>roleId=1, institutionId=1</em> — format khusus EUIS</li>
+        <li>Tunggu <code>css=.navbar</code> sebelum lanjut — konfirmasi login berhasil</li>
+      </ul>
+      <div class="callout warn" style="margin-top:16px;">
+        <p>Blok ini identik di semua test dalam suite sehingga setiap test dapat dijalankan secara independen tanpa urutan tertentu.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 9 — ACT BLOCK
+══════════════════════════════════════════════ -->
+<div class="slide" id="s9">
+  <div class="section-tag">Anatomy · Blok ACT</div>
+  <h2>Blok [2] ACT</h2>
+  <div class="two-col">
+    <div>
+      <pre><span class="kw">click</span>    id=link-menu-konfigurasi
+<span class="kw">waitFor</span>  id=link-conf-index-course-category
+<span class="kw">click</span>    id=link-conf-index-course-category
+<span class="kw">waitFor</span>  id=grid-conf-coursecategorylist
+
+<span class="kw">click</span>    id=btn-conf-coursecategorylist-create
+<span class="kw">waitFor</span>  id=form-conf-coursecategorycreate
+
+<span class="kw">type</span>     id=trefjenismatakuliah-nama  <span class="val">0Uji188</span>
+<span class="kw">click</span>    id=btn-conf-coursecategorycreate</pre>
+    </div>
+    <div>
+      <h3>Poin penting</h3>
+      <ul>
+        <li>Navigasi melalui sidebar — menguji menu sekaligus fungsi halaman, bukan hanya membuka URL langsung</li>
+        <li><code>waitForElementPresent</code> sebelum setiap interaksi — tidak ada <code>pause</code> dengan waktu tetap yang rawan gagal di koneksi lambat</li>
+        <li>Data test memakai awalan <code>0Uji</code> agar selalu tampil di baris pertama grid (urutan alfabet) dan mudah diidentifikasi</li>
+        <li>Angka <code>188</code> adalah nomor issue GitLab yang memicu pembuatan test ini</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 10 — ASSERT BLOCK
+══════════════════════════════════════════════ -->
+<div class="slide" id="s10">
+  <div class="section-tag">Anatomy · Blok ASSERT</div>
+  <h2>Blok [3] ASSERT</h2>
+  <div class="two-col">
+    <div>
+      <pre><span class="kw">waitFor</span>  id=grid-conf-coursecategorylist
+
+<span class="cmt"># Pastikan tidak ada error server</span>
+<span class="kw">assertElementNotPresent</span>
+  id=<span class="val">error-heading</span>
+
+<span class="cmt"># Pastikan flash sukses tampil</span>
+<span class="kw">assertElementPresent</span>
+  css=<span class="val">.alert-success</span></pre>
+    </div>
+    <div>
+      <h3>Dua assert wajib</h3>
+      <ul>
+        <li><code>assertElementNotPresent id=error-heading</code> — semua halaman error di EUIS merender elemen ini. Error 500 atau 403 langsung memerahkan test tanpa perlu inspeksi manual</li>
+        <li><code>assertElementPresent css=.alert-success</code> — memverifikasi flash sukses dari server, bukan hanya redirect URL</li>
+        <li>Teks dalam flash tidak diuji — konten teks lebih sering berubah daripada keberadaan elemen, sehingga lebih rentan false failure</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 11 — TEARDOWN BLOCK
+══════════════════════════════════════════════ -->
+<div class="slide" id="s11">
+  <div class="section-tag">Anatomy · Blok TEARDOWN</div>
+  <h2>Blok [4] TEARDOWN</h2>
+  <div class="two-col">
+    <div>
+      <pre><span class="kw">storeXpathCount</span>
+  xpath=//td[text()=<span class="val">'0Uji188'</span>]
+  → <span class="var">cleanupCount</span>
+
+<span class="kw">if</span>  <span class="var">${cleanupCount}</span> > 0
+  <span class="kw">storeAttribute</span>
+    xpath=//tr[.//td[text()=<span class="val">'0Uji188'</span>]]
+           @data-key  → <span class="var">cleanupId</span>
+  <span class="kw">click</span>    id=btn-...-delete-<span class="var">${cleanupId}</span>
+  <span class="kw">waitFor</span>  id=modal-...-delete
+  <span class="kw">click</span>    id=btn-modal-...-hapus
+  <span class="kw">waitFor</span>  id=grid-...
+<span class="kw">end</span></pre>
+    </div>
+    <div>
+      <h3>Mengapa kondisional?</h3>
+      <ul>
+        <li>Jika test gagal sebelum data tersimpan, teardown tanpa kondisi akan error karena record tidak ditemukan</li>
+        <li><code>storeXpathCount</code> menghitung baris yang cocok — bernilai <code>0</code> jika tidak ada</li>
+        <li>Blok <code>if/end</code> memastikan hapus hanya dijalankan jika data memang ada</li>
+        <li>Database selalu bersih setelah test, apapun yang terjadi selama eksekusi</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 12 — PATTERN: DYNAMIC ID
+══════════════════════════════════════════════ -->
+<div class="slide" id="s12">
+  <div class="section-tag">Bagian 4 · Pola 1 dari 3</div>
+  <h2>Dynamic ID via XPath + storeAttribute</h2>
+  <p><strong>Masalah:</strong> ID record di grid tidak diketahui saat test ditulis karena nilainya auto-increment dari database.</p>
+  <pre><span class="cmt"># Ambil ID dari atribut data-key pada baris yang cocok</span>
+<span class="kw">storeAttribute</span>
+  target: xpath=//tr[.//td[text()=<span class="val">'0Uji188'</span>]]@data-key
+  value:  <span class="var">recordId</span>
+
+<span class="cmt"># Gunakan ID yang baru diambil untuk menargetkan tombol</span>
+<span class="kw">click</span>
+  target: id=btn-conf-coursecategorylist-update-<span class="var">${recordId}</span></pre>
+  <h3>Cara membaca XPath tersebut</h3>
+  <ul>
+    <li>Cari semua elemen <code>&lt;tr&gt;</code> yang di dalamnya terdapat <code>&lt;td&gt;</code> berisi teks <code>0Uji188</code></li>
+    <li>Dari <code>&lt;tr&gt;</code> yang ditemukan, baca nilai atribut <code>data-key</code></li>
+    <li>Simpan ke variabel <code>recordId</code>, lalu interpolasikan ke command berikutnya sebagai <code>${recordId}</code></li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 13 — PATTERN: CONDITIONAL TEARDOWN
+══════════════════════════════════════════════ -->
+<div class="slide" id="s13">
+  <div class="section-tag">Bagian 4 · Pola 2 dari 3</div>
+  <h2>Conditional Teardown</h2>
+  <p><strong>Masalah:</strong> Jika test gagal di tengah jalan, kita tidak tahu apakah data sudah tersimpan di database atau belum.</p>
+  <pre><span class="cmt"># Hitung dulu berapa baris yang cocok</span>
+<span class="kw">storeXpathCount</span>
+  target: xpath=//td[text()=<span class="val">'0Uji188'</span>]
+  value:  <span class="var">cleanupCount</span>
+
+<span class="cmt"># Hapus hanya jika data ada</span>
+<span class="kw">if</span>    <span class="var">${cleanupCount}</span> > 0
+  ... hapus record ...
+<span class="kw">end</span></pre>
+  <div class="two-col" style="margin-top:4px;">
+    <div>
+      <h3>Kenapa ini penting</h3>
+      <ul>
+        <li><code>storeXpathCount</code> menghasilkan <code>0</code> jika tidak ada baris yang cocok</li>
+        <li>Tanpa kondisi: teardown error saat data tidak ada → test dilaporkan merah meski bukan bug</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Manfaat</h3>
+      <ul>
+        <li>Suite dapat dijalankan berulang kali tanpa error teardown</li>
+        <li>Database selalu bersih setelah suite selesai, apapun hasilnya</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 14 — PATTERN: ERROR GUARD
+══════════════════════════════════════════════ -->
+<div class="slide" id="s14">
+  <div class="section-tag">Bagian 4 · Pola 3 dari 3</div>
+  <h2>Error Guard</h2>
+  <p><strong>Masalah:</strong> Error server (HTTP 500) atau akses ditolak (403) tidak selalu kentara — halaman bisa tetap tampil sebagian tanpa pesan jelas.</p>
+  <pre><span class="kw">assertElementNotPresent</span> | id=<span class="val">error-heading</span></pre>
+  <div class="two-col" style="margin-top:16px;">
+    <div class="card">
+      <h3>Cara kerja</h3>
+      <ul>
+        <li>Setiap halaman error di EUIS merender <code>&lt;div id="error-heading"&gt;</code></li>
+        <li>Assert ini memastikan elemen tersebut <em>tidak ada</em></li>
+        <li>Jika ada error di server, elemen muncul → assert gagal → test merah secara otomatis</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Di mana dipasang</h3>
+      <ul>
+        <li>Setelah setiap navigasi ke halaman baru</li>
+        <li>Setelah submit form (sebelum assert lainnya)</li>
+        <li>Selalu menjadi assert pertama dalam blok ASSERT</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 15 — NAMING CONVENTION
+══════════════════════════════════════════════ -->
+<div class="slide" id="s15">
+  <div class="section-tag">Bagian 4 · Pola Pendukung</div>
+  <h2>Konvensi Penamaan ID</h2>
+  <p>Format: <code class="hi2">btn-&lt;modul&gt;-&lt;halaman&gt;-&lt;aksi&gt;[-&lt;id-record&gt;]</code></p>
+  <table>
+    <tr><th>Elemen</th><th>ID</th></tr>
+    <tr><td>Grid/tabel daftar</td><td><code>id=grid-conf-coursecategorylist</code></td></tr>
+    <tr><td>Tombol tambah data</td><td><code>id=btn-conf-coursecategorylist-create</code></td></tr>
+    <tr><td>Tombol hapus per baris</td><td><code>id=btn-conf-coursecategorylist-delete-${recordId}</code></td></tr>
+    <tr><td>Form input tambah</td><td><code>id=form-conf-coursecategorycreate</code></td></tr>
+    <tr><td>Modal konfirmasi hapus</td><td><code>id=modal-conf-coursecategorylist-delete</code></td></tr>
+    <tr><td>Tombol konfirmasi di modal</td><td><code>id=btn-modal-conf-coursecategorylist-hapus</code></td></tr>
+  </table>
+  <p style="margin-top:14px;" class="muted">Dev wajib memasang ID ini di view sebelum QA dapat menulis test. Konvensi yang konsisten memungkinkan QA menebak ID tanpa perlu membuka kode sumber.</p>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 16 — STRUKTUR DIREKTORI
+══════════════════════════════════════════════ -->
+<div class="slide" id="s16">
+  <div class="section-tag">Bagian 5 · 10 menit</div>
+  <h2>Struktur Direktori &amp; Cara Tambah Test</h2>
+  <div class="two-col">
+    <div>
+      <pre>tests/e2e/suites/
+  auth/
+    login.side
+  configuration/
+    jenis-matakuliah-crud.side
+    pengguna-crud.side
+    peran-crud.side
+    periode-akademik-crud.side
+    institusi-crud.side
+    event-akademik-crud.side
+    reg-event-crud.side
+    lokasi-ujian.side
+  calendar/
+    kalender-akademik-crud.side
+    kalender-akademik-dosen-view.side
+  study-plan/
+    irs-mahasiswa.side
+  message/
+    pesan-crud.side
+    pesan-broadcast.side
+  edom/
+    edom-dosen-flow.side
+  site/
+    crud-pengumuman-175.side
+    ...</pre>
+    </div>
+    <div>
+      <h3>Status saat ini</h3>
+      <ul>
+        <li>19 suite disimpan di git bersama kode fitur</li>
+        <li>Fitur tercakup: auth, configuration, calendar, study-plan, message, edom, site</li>
+      </ul>
+      <h3>Cara menambah test baru</h3>
+      <ul class="numbered">
+        <li>Salin <code>.side</code> yang sudah ada sebagai template</li>
+        <li>Ganti ID elemen sesuai fitur baru (ikuti konvensi penamaan)</li>
+        <li>Ganti data test: <code>0Uji&lt;nomor-issue&gt;</code></li>
+        <li>Jalankan di Selenium IDE — pastikan semua hijau</li>
+        <li>Commit ke branch yang sama dengan fitur atau fix-nya</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 17 — COVERAGE TABLE
+══════════════════════════════════════════════ -->
+<div class="slide" id="s17">
+  <div class="section-tag">Bagian 5 · Template coverage</div>
+  <h2>Cakupan Minimum per Fitur CRUD</h2>
+  <p>Sembilan test berikut sudah mencakup skenario normal dan skenario kesalahan untuk satu fitur CRUD standar:</p>
+  <table>
+    <tr><th>#</th><th>Test</th><th>Yang diverifikasi</th></tr>
+    <tr><td>1</td><td><code>testCleanup</code></td><td>Database bersih sebelum suite dimulai — agar suite dapat diulang</td></tr>
+    <tr><td>2</td><td><code>testListLoads</code></td><td>Halaman daftar terbuka, tidak ada error server, grid tampil</td></tr>
+    <tr><td>3</td><td><code>testCreateValidation</code></td><td>Form yang dikirim kosong ditolak, pesan validasi inline muncul</td></tr>
+    <tr><td>4</td><td><code>testCreateHappyPath</code></td><td>Data tersimpan, redirect ke daftar, flash sukses tampil</td></tr>
+    <tr><td>5</td><td><code>testViewLoads</code></td><td>Halaman detail terbuka, tidak ada error server</td></tr>
+    <tr><td>6</td><td><code>testUpdateValidation</code></td><td>Form update yang dikosongkan ditolak, pesan validasi inline muncul</td></tr>
+    <tr><td>7</td><td><code>testUpdateHappyPath</code></td><td>Perubahan tersimpan, redirect ke daftar, flash sukses tampil</td></tr>
+    <tr><td>8</td><td><code>testDeleteModal</code></td><td>Modal konfirmasi muncul; tombol Batal tidak menghapus data</td></tr>
+    <tr><td>9</td><td><code>testDeleteHappyPath</code></td><td>Record terhapus dari database, tidak muncul lagi di daftar</td></tr>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SLIDE 18 — PENUTUP
+══════════════════════════════════════════════ -->
+<div class="slide" id="s18">
+  <div class="section-tag">Penutup</div>
+  <h2>Ringkasan</h2>
+  <div class="three-col" style="margin-top:8px;">
+    <div class="card">
+      <h3>Tanpa coding</h3>
+      <p>Selenium IDE menyediakan antarmuka grafis. Menulis test berarti mengisi template yang sudah ada dan mengganti ID elemen.</p>
+    </div>
+    <div class="card">
+      <h3>Terdokumentasi</h3>
+      <p>File <code>.side</code> disimpan di git. Siapapun dapat melihat skenario apa yang sudah diuji dan menjalankannya sendiri.</p>
+    </div>
+    <div class="card">
+      <h3>Target ke depan</h3>
+      <p>Setiap merge request yang masuk ke branch <code>main</code> harus disertai file <code>.side</code> untuk fitur atau fix yang dibawa.</p>
+    </div>
+  </div>
+  <hr style="margin: 28px 0 20px;">
+  <div style="text-align:center;">
+    <p style="font-family:'DM Serif Display',serif; font-size:26px; color:var(--coral);">Pertanyaan?</p>
+    <p class="muted" style="margin-top:6px;">File test tersedia di <code>tests/e2e/suites/</code> &nbsp;·&nbsp; Gunakan Chrome untuk menjalankan</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     NAVIGATION
+══════════════════════════════════════════════ -->
+<div id="nav-row">
+  <button id="prev" onclick="go(-1)" disabled>← Prev</button>
+  <div id="section-dots"></div>
+  <span id="counter">1 / 18</span>
+  <button id="next" onclick="go(1)">Next →</button>
+</div>
+
+<script>
+  const TOTAL = 18;
+  const SECTIONS = [
+    { label: 'Intro',    slides: [1,2] },
+    { label: 'Mengapa',  slides: [3] },
+    { label: 'Demo',     slides: [4,5,6] },
+    { label: 'Anatomy',  slides: [7,8,9,10,11] },
+    { label: 'Patterns', slides: [12,13,14,15] },
+    { label: 'Struktur', slides: [16,17] },
+    { label: 'Penutup',  slides: [18] },
+  ];
+
+  let cur = 1;
+
+  const dotWrap = document.getElementById('section-dots');
+  SECTIONS.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'dot';
+    d.id = 'dot-' + i;
+    d.title = s.label;
+    dotWrap.appendChild(d);
+  });
+
+  function sectionOf(n) {
+    return SECTIONS.findIndex(s => s.slides.includes(n));
+  }
+
+  function update() {
+    document.getElementById('progress-bar-fill').style.width = ((cur / TOTAL) * 100) + '%';
+    document.getElementById('counter').textContent = cur + ' / ' + TOTAL;
+    document.getElementById('prev').disabled = cur === 1;
+    document.getElementById('next').disabled = cur === TOTAL;
+
+    const sec = sectionOf(cur);
+    document.querySelectorAll('.bc-item').forEach((el, i) => {
+      el.classList.toggle('active', i === sec);
+    });
+    document.querySelectorAll('.dot').forEach((el, i) => {
+      el.classList.toggle('active', i === sec);
+    });
+  }
+
+  function go(d) {
+    document.getElementById('s' + cur).classList.remove('active');
+    cur = Math.max(1, Math.min(TOTAL, cur + d));
+    document.getElementById('s' + cur).classList.add('active');
+    update();
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') go(1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')  go(-1);
+  });
+
+  update();
+</script>
+</body>
+</html>
